@@ -42,7 +42,7 @@ def createTodaysGames(games, df, odds):
         
         # calculate days rest for both teams
         dateparse = lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%S')
-        schedule_df = pd.read_csv('Data/mlb-2022.csv', parse_dates=['Date'], date_parser=dateparse)
+        schedule_df = pd.read_csv('Data/upcoming_schedule.csv', parse_dates=['Date'], date_parser=dateparse)
         home_games = schedule_df[(schedule_df['Home Team'] == home_team) | (schedule_df['Away Team'] == home_team)]
         away_games = schedule_df[(schedule_df['Home Team'] == away_team) | (schedule_df['Away Team'] == away_team)]
         last_home_date = home_games.loc[schedule_df['Date'] <= datetime.today()].sort_values('Date', ascending=False).head(1)['Date'].iloc[0]
