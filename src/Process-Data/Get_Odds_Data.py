@@ -7,21 +7,21 @@ import sys
 
 from datetime import datetime, timedelta
 from tqdm import tqdm
-from sbrscrape import Scoreboard
+from sbrscrape import MLB_Scoreboard  # Import MLB_Scoreboard instead of Scoreboard
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from Utils.tools import get_date
 
 year = [2022, 2023]
-season = ["2022-23"]
+season = ["2022", "2023"]  # Update season to the desired years in string format
 
-month = [10, 11, 12, 1, 2, 3, 4, 5, 6]
-days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+month = [3, 4, 5, 6, 7, 8, 9, 10]  # Update months based on the MLB season
+days = list(range(1, 32))  # Update days to cover the entire month
 
 begin_year_pointer = year[0]
 end_year_pointer = year[0]
 count = 0
 
-sportsbook='fanduel'
+sportsbook = 'fanduel'
 df_data = []
 
 con = sqlite3.connect("../../Data/odds.sqlite")
@@ -29,28 +29,19 @@ con = sqlite3.connect("../../Data/odds.sqlite")
 for season1 in tqdm(season):
     teams_last_played = {}
     for month1 in tqdm(month):
-        if month1 == 1:
-            count += 1
-            end_year_pointer = year[count]
         for day1 in tqdm(days):
-            if month1 == 10 and day1 < 19:
-                continue
-            if month1 in [4,6,9,11] and day1 > 30:
-                continue
-            if month1 == 2 and day1 > 28:
-                continue
             if end_year_pointer == datetime.now().year:
-                if month1 == datetime.now().month and day1 >= datetime.now().day:
+                current_date = datetime.now().date()
+                if datetime(int(season1), month1, day1).date() > current_date:
                     continue
-                if month1 > datetime.now().month:
-                    continue
-            sb = Scoreboard(date=f"{end_year_pointer}-{month1:02}-{day1:02}")
+
+            sb = MLB_Scoreboard(date=f"{season1}-{month1:02}-{day1:02}")  # Use MLB_Scoreboard instead of Scoreboard
             if not hasattr(sb, "games"):
                 continue
             for game in sb.games:
                 if game['home_team'] not in teams_last_played:
                     teams_last_played[game['home_team']] = get_date(f"{season1}-{month1:02}{day1:02}")
-                    home_games_rested = timedelta(days=7) # start of season, big number
+                    home_games_rested = timedelta(days=7)  # Start of season, use a suitable value
                 else:
                     current_date = get_date(f"{season1}-{month1:02}{day1:02}")
                     home_games_rested = current_date - teams_last_played[game['home_team']]
@@ -59,16 +50,16 @@ for season1 in tqdm(season):
 
                 if game['away_team'] not in teams_last_played:
                     teams_last_played[game['away_team']] = get_date(f"{season1}-{month1:02}{day1:02}")
-                    away_games_rested = timedelta(days=7) # start of season, big number
+                    away_games_rested = timedelta(days=7)  # Start of season, use a suitable value
                 else:
                     current_date = get_date(f"{season1}-{month1:02}{day1:02}")
                     away_games_rested = current_date - teams_last_played[game['away_team']]
                     teams_last_played[game['away_team']] = current_date
-                
+
                 try:
                     df_data.append({
                         'Unnamed: 0': 0,
-                        'Date': f"{season1}-{month1:02}{day1:02}",
+                        'Date': f"{season1}-{month1:02}-{day1:02}",
                         'Home': game['home_team'],
                         'Away': game['away_team'],
                         'OU': game['total'][sportsbook],
@@ -86,5 +77,5 @@ for season1 in tqdm(season):
     begin_year_pointer = year[count]
 
     df = pd.DataFrame(df_data,)
-    df.to_sql(f"odds_{season1}", con, if_exists="replace")
+    df.to_sql(f"odds_{season1}_MLB", con, if_exists="replace")  # Update table name with "_MLB"
 con.close()
