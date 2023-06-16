@@ -6,11 +6,13 @@ import sys
 from datetime import date, datetime, timedelta
 
 from tqdm import tqdm
+import requests
+from bs4 import BeautifulSoup
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from Utils.tools import get_json_data, to_data_frame
+from Utils.tools import to_data_frame
 
-url = 'https://statsapi.mlb.com/api/v1/teams?season={0}&date={1}-{2}-{3}'
+url = 'https://www.mlb.com/teams'
 
 year = [2022, 2023]
 season = ["2022", "2023"]
@@ -41,15 +43,29 @@ for season1 in tqdm(season):
                     continue
                 if month1 > datetime.now().month:
                     continue
-            general_data = get_json_data(url.format(season1, end_year_pointer, month1, day1))
-            general_df = to_data_frame(general_data['teams'])
-            real_date = date(year=end_year_pointer, month=month1, day=day1) + timedelta(days=1)
-            general_df['Date'] = str(real_date)
-
-            x = str(real_date).split('-')
-            general_df.to_sql(f"mlb_teams_{season1}-{str(int(x[1]))}-{str(int(x[2]))}", con, if_exists="replace")
-
-            time.sleep(random.randint(1, 3))
+            
+            # Make a GET request to the MLB teams page
+            response = requests.get(url)
+            if response.status_code == 200:
+                page_content = response.text
+                soup = BeautifulSoup(page_content, 'html.parser')
+                
+                # Extract the teams data from the page
+                team_elements = soup.find_all('a', {'class': 'p-featured-teams__logo-link'})
+                teams_data = []
+                for team_element in team_elements:
+                    team_name = team_element.find('span', {'class': 'p-featured-teams__team-name'}).text
+                    team_logo_url = team_element.find('img', {'class': 'p-featured-teams__logo-img'})['src']
+                    teams_data.append({'team_name': team_name, 'team_logo_url': team_logo_url})
+                
+                general_df = to_data_frame(teams_data)
+                real_date = date(year=end_year_pointer, month=month1, day=day1) + timedelta(days=1)
+                general_df['Date'] = str(real_date)
+    
+                x = str(real_date).split('-')
+                general_df.to_sql(f"mlb_teams_{season1}-{str(int(x[1]))}-{str(int(x[2]))}", con, if_exists="replace")
+    
+                time.sleep(random.randint(1, 3))
     begin_year_pointer = year[count]
 
 con.close()
