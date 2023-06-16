@@ -27,17 +27,17 @@ data_headers = {
 def get_json_data(url):
     raw_data = requests.get(url, headers=data_headers)
     try:
-        json = raw_data.json()
+        json_data = raw_data.json()
     except Exception as e:
         print(e)
         return {}
-    return json
+    return json_data
 
 
 def get_todays_games_json(url):
     raw_data = requests.get(url, headers=games_header)
-    json = raw_data.json()
-    return json.get('dates', [])
+    json_data = raw_data.json()
+    return json_data.get('dates', [])
 
 
 def to_data_frame(data):
@@ -62,9 +62,12 @@ def create_todays_games_from_odds(input_dict):
     for game in input_dict.keys():
         home_team, away_team = game.split(":")
         games.append([home_team, away_team])
-    return games
 
 
 def get_date(date_string):
     year, month, day = re.search(r'(\d+)-(\d+)-(\d+)', date_string).groups()
     return datetime.strptime(f"{year}-{month}-{day}", '%Y-%m-%d')
+
+if __name__ == "__main__":
+    # Your code here
+    pass
