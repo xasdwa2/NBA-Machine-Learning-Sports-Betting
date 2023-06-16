@@ -6,9 +6,16 @@ import os
 import sys
 
 from datetime import datetime, timedelta
-from tqdm import tqdm
-from Utils.tools import get_date
+import re
 import requests
+from tqdm import tqdm
+
+# Import get_date from tools.py in the same directory
+from tools import get_date
+
+# Rest of the code...
+
+
 
 class OddsAPIProvider:
     def __init__(self, api_key, sportsbook="fanduel"):
@@ -23,7 +30,11 @@ class OddsAPIProvider:
         response = requests.get(url, headers=headers, params=params)
         data = response.json()
 
-        return data["data"]
+        if "data" in data:
+            return data["data"]
+        else:
+            return []
+
 
 year = [2022, 2023]
 season = ["2022", "2023"]
@@ -105,6 +116,6 @@ for season1 in tqdm(season):
 
     begin_year_pointer = year[count]
 
-df = pd.DataFrame(df_data,)
+df = pd.DataFrame(df_data)
 df.to_sql(f"odds_{season1}_MLB", con, if_exists="replace")
 con.close()
