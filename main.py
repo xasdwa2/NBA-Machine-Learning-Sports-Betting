@@ -10,15 +10,8 @@ from src.Utils.tools import create_todays_games_from_odds, get_json_data, to_dat
 from src.DataProviders.SbrOddsProvider import SbrOddsProvider
 
 
-todays_games_url = 'https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2022/scores/00_todays_scores.json'
-data_url = 'https://stats.nba.com/stats/leaguedashteamstats?' \
-           'Conference=&DateFrom=&DateTo=&Division=&GameScope=&' \
-           'GameSegment=&LastNGames=0&LeagueID=00&Location=&' \
-           'MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&' \
-           'PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&' \
-           'PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&' \
-           'Season=2022-23&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&' \
-           'StarterBench=&TeamID=0&TwoWay=0&VsConference=&VsDivision='
+todays_games_url = 'https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=' + datetime.today().strftime('%Y-%m-%d')
+data_url = 'https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season=' + datetime.today().strftime('%Y')
 
 
 def createTodaysGames(games, df, odds):
@@ -26,7 +19,6 @@ def createTodaysGames(games, df, odds):
     todays_games_uo = []
     home_team_odds = []
     away_team_odds = []
-    # todo: get the days rest for current games
     home_team_days_rest = []
     away_team_days_rest = []
 
@@ -49,15 +41,14 @@ def createTodaysGames(games, df, odds):
             away_team_odds.append(input(away_team + ' odds: '))
         
         # calculate days rest for both teams
-        dateparse = lambda x: datetime.strptime(x, '%d/%m/%Y %H:%M')
-        schedule_df = pd.read_csv('Data/nba-2022-UTC.csv', parse_dates=['Date'], date_parser=dateparse)
+        dateparse = lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%S')
+        schedule_df = pd.read_csv('Data/mlb-2022.csv', parse_dates=['Date'], date_parser=dateparse)
         home_games = schedule_df[(schedule_df['Home Team'] == home_team) | (schedule_df['Away Team'] == home_team)]
         away_games = schedule_df[(schedule_df['Home Team'] == away_team) | (schedule_df['Away Team'] == away_team)]
-        last_home_date = home_games.loc[schedule_df['Date'] <= datetime.today()].sort_values('Date',ascending=False).head(1)['Date'].iloc[0]
-        last_away_date = away_games.loc[schedule_df['Date'] <= datetime.today()].sort_values('Date',ascending=False).head(1)['Date'].iloc[0]
+        last_home_date = home_games.loc[schedule_df['Date'] <= datetime.today()].sort_values('Date', ascending=False).head(1)['Date'].iloc[0]
+        last_away_date = away_games.loc[schedule_df['Date'] <= datetime.today()].sort_values('Date', ascending=False).head(1)['Date'].iloc[0]
         home_days_off = timedelta(days=1) + datetime.today() - last_home_date
         away_days_off = timedelta(days=1) + datetime.today() - last_away_date
-        # print(f"{away_team} days off: {away_days_off.days} @ {home_team} days off: {home_days_off.days}")
 
         home_team_days_rest.append(home_days_off.days)
         away_team_days_rest.append(away_days_off.days)
@@ -88,7 +79,7 @@ def main():
             return
         if((games[0][0]+':'+games[0][1]) not in list(odds.keys())):
             print(games[0][0]+':'+games[0][1])
-            print(Fore.RED, "--------------Games list not up to date for todays games!!! Scraping disabled until list is updated.--------------")
+            print(Fore.RED, "--------------Games list not up to date for today's games!!! Scraping disabled until the list is updated.--------------")
             print(Style.RESET_ALL)
             odds = None
         else:
@@ -127,6 +118,7 @@ if __name__ == "__main__":
     parser.add_argument('-nn', action='store_true', help='Run with Neural Network Model')
     parser.add_argument('-A', action='store_true', help='Run all Models')
     parser.add_argument('-odds', help='Sportsbook to fetch from. (fanduel, draftkings, betmgm, pointsbet, caesars, wynn, bet_rivers_ny')
-    parser.add_argument('-kc', action='store_true', help='Calculates percentage of bankroll to bet based on model edge')
+    parser.add_argument('-kc', action='store_true', help='Display Kansas City games only')
     args = parser.parse_args()
+
     main()
